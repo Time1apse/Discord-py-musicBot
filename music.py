@@ -19,7 +19,7 @@ class Player(commands.Cog):
         for guild in self.bot.guilds:
             self.song_queue[guild.id] = []
             self.song_name_queue[guild.id] = []
-
+            
     async def search_song(self, song):
         song = music(song)
         return song
@@ -152,6 +152,10 @@ class Player(commands.Cog):
             return await ctx.send("The song is already playing")
         else:
             ctx.voice_client.resume()
+
+    @commands.command()
+    async def бебра(self, ctx):
+        return await ctx.send(f"{ctx.message.author.mention} сам ты бе... бебр... иди нахуй короче")
         
 
 

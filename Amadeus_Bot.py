@@ -3,7 +3,9 @@ from discord.ext import commands
 from config import settings
 from music import Player
 
-bot = commands.Bot(command_prefix="$")
+activity = discord.Activity(type=discord.ActivityType.listening, name="$help")
+
+bot = commands.Bot(command_prefix="$", activity=activity, status=discord.Status.do_not_disturb)
 
 @bot.event
 async def on_ready():
