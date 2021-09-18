@@ -1,6 +1,6 @@
 settings = {
-        'token': "text",
+        'token': "some_token_here",
         'bot': "Amadeus",
-        'id': numbers,
+        'id': some_id_numbers_here,
         'prefix': "$"
     }

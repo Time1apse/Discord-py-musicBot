@@ -4,31 +4,41 @@ import youtube_dl
 import pafy
 from Paparser import music
 import asyncio
+import pafy
+from discord import FFmpegPCMAudio, PCMVolumeTransformer
 
 class Player(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.song_queue = {}
+        self.song_name_queue = {}
 
         self.setup()
 
     def setup(self):
         for guild in self.bot.guilds:
             self.song_queue[guild.id] = []
+            self.song_name_queue[guild.id] = []
 
     async def search_song(self, song):
-        a = music(song)
-        return a
+        song = music(song)
+        return song
 
     async def check_queue(self, ctx):
         if len(self.song_queue[ctx.guild.id]) > 0:
-            ctx.voice_client.stop()
-            await self.play_song(ctx, self.song_queue[ctx.guild.id][0])
-            self.song_queue[ctx.guild.id].pop(0)
+            if not ctx.voice_client.is_playing():
+                ctx.voice_client.stop()
+                await self.play_song(ctx, self.song_queue[ctx.guild.id][0])
+                self.song_queue[ctx.guild.id].pop(0)
+                self.song_name_queue[ctx.guild.id].pop(0)
 
     async def play_song(self, ctx, *song):
-        player = await YTDLSource.from_url(song, stream=True) 
+        url = "".join(song)
+        song = pafy.new(url)
+        audio = song.getbestaudio()
+        player = FFmpegPCMAudio(audio.url, **ffmpeg_options)
         ctx.voice_client.play(player, after=lambda error: self.bot.loop.create_task(self.check_queue(ctx)))
+        return song.title
 
 
     @commands.command()
@@ -53,7 +63,7 @@ class Player(commands.Cog):
         url = " ".join(url)
         print(url)
 
-        if url is None:
+        if url is None or url == '' or url == " ":
             return await ctx.send("You must include a song to play")
 
         if ctx.voice_client is None:
@@ -65,23 +75,39 @@ class Player(commands.Cog):
             url = await self.search_song(url)
             
 
-        if ctx.voice_client.is_playing():
+        if ctx.voice_client.is_playing() or ctx.voice_client.is_paused():
             queue_len = len(self.song_queue[ctx.guild.id])
 
             self.song_queue[ctx.guild.id].append(url)
+            url = "".join(url)
+            nameOfSong = pafy.new(url)
+            self.song_name_queue[ctx.guild.id].append(nameOfSong.title)
             return await ctx.send(f"Added to queue at position: {queue_len+1}")
 
 
-        await self.play_song(ctx, url)
-        await ctx.send(f'Now playing: {url}')
+        name_play = await self.play_song(ctx, url)
+        await ctx.send(f'Now playing: {name_play}')
 
 
     @commands.command(aliases=["q"])
     async def queue(self, ctx):
+        print(len(self.song_queue[ctx.guild.id]))
+        print(len(self.song_name_queue[ctx.guild.id]))
         if len(self.song_queue[ctx.guild.id]) == 0:
-            return await ctx.send("There are currently no songs in the queue")
+            if len(self.song_name_queue[ctx.guild.id]) == 0:
+                return await ctx.send("There are currently no songs in the queue")
 
         embed = discord.Embed(title="Song Queue", description="", colour=discord.Colour.dark_gold())
+        i = 1
+        for url in self.song_name_queue[ctx.guild.id]:
+            embed.description += f"{i}) {url}\n"
+
+            i += 1
+
+        embed.set_footer(text="Bruh")
+        await ctx.send(embed=embed)
+
+        embed = discord.Embed(title="Song Queue id's", description="", colour=discord.Colour.dark_gold())
         i = 1
         for url in self.song_queue[ctx.guild.id]:
             embed.description += f"{i}) {url}\n"
@@ -141,38 +167,6 @@ class Player(commands.Cog):
 
 
 ffmpeg_options = {
+    'before_options': '-reconnect 1 -reconnect_streamed 1 -reconnect_delay_max 5',
     'options': '-vn'
-}
-
-ytdl_opts = {
-           'format': 'bestaudio/best',
-           'postprocessors': [{
-               'key': 'FFmpegExtractAudio',
-               'preferredcodec': 'mp3',
-               'preferredquality': '192',
-               }],
-           }
-
-ytdl = youtube_dl.YoutubeDL(ytdl_opts)
-
-class YTDLSource(discord.PCMVolumeTransformer):
-    def __init__(self, source, *, data, volume=0.5):
-        super().__init__(source, volume)
-
-        self.data = data
-
-        self.title = data.get('title')
-        self.url = data.get('url')
-
-    @classmethod
-    async def from_url(cls, url, *, loop=None, stream=False):
-        url = "".join(url)
-        loop = loop or asyncio.get_event_loop()
-        data = await loop.run_in_executor(None, lambda: ytdl.extract_info(url, download=not stream))
-
-        if 'entries' in data:
-            # take first item from a playlist
-            data = data['entries'][0]
-
-        filename = data['url'] if stream else ytdl.prepare_filename(data)
-        return cls(discord.FFmpegPCMAudio(filename, **ffmpeg_options), data=data)
+    }
