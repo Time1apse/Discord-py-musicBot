@@ -16,10 +16,3 @@ def music(name: str):
     result = result.replace("videoId:", "")
     print(result)
     return(str(result))
-
-
-def main():
-    music("doomer")
-
-if __name__ == "__main__":
-    main()

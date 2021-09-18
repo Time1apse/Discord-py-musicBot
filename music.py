@@ -91,8 +91,6 @@ class Player(commands.Cog):
 
     @commands.command(aliases=["q"])
     async def queue(self, ctx):
-        print(len(self.song_queue[ctx.guild.id]))
-        print(len(self.song_name_queue[ctx.guild.id]))
         if len(self.song_queue[ctx.guild.id]) == 0:
             if len(self.song_name_queue[ctx.guild.id]) == 0:
                 return await ctx.send("There are currently no songs in the queue")
@@ -107,15 +105,6 @@ class Player(commands.Cog):
         embed.set_footer(text="Bruh")
         await ctx.send(embed=embed)
 
-        embed = discord.Embed(title="Song Queue id's", description="", colour=discord.Colour.dark_gold())
-        i = 1
-        for url in self.song_queue[ctx.guild.id]:
-            embed.description += f"{i}) {url}\n"
-
-            i += 1
-
-        embed.set_footer(text="Bruh")
-        await ctx.send(embed=embed)
 
     @commands.command(aliases=['s'])
     async def skip(self, ctx):
