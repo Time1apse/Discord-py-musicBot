@@ -3,5 +3,4 @@
 you need ffmpeg libraries in script directory to work 
 
 TODO:
--Add working playlists
 -Maybe add support for other platforms
