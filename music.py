@@ -1,24 +1,25 @@
 import discord
 from discord.ext import commands
+from discord.ext.commands.core import check
 import youtube_dl
 import pafy
-from Paparser import music
+from Paparser import music, playlist
 import asyncio
-import pafy
 from discord import FFmpegPCMAudio, PCMVolumeTransformer
 
 class Player(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.song_queue = {}
-        self.song_name_queue = {}
+        self.names_queue = {}
 
         self.setup()
 
     def setup(self):
         for guild in self.bot.guilds:
             self.song_queue[guild.id] = []
-            self.song_name_queue[guild.id] = []
+            self.names_queue[guild.id] = []
+            
             
     async def search_song(self, song):
         song = music(song)
@@ -30,7 +31,7 @@ class Player(commands.Cog):
                 ctx.voice_client.stop()
                 await self.play_song(ctx, self.song_queue[ctx.guild.id][0])
                 self.song_queue[ctx.guild.id].pop(0)
-                self.song_name_queue[ctx.guild.id].pop(0)
+                self.names_queue[ctx.guild.id].pop(0)
 
     async def play_song(self, ctx, *song):
         url = "".join(song)
@@ -38,7 +39,7 @@ class Player(commands.Cog):
         audio = song.getbestaudio()
         player = FFmpegPCMAudio(audio.url, **ffmpeg_options)
         ctx.voice_client.play(player, after=lambda error: self.bot.loop.create_task(self.check_queue(ctx)))
-        return song.title
+        await ctx.send(f'Now playing: {song.title}')
 
 
     @commands.command()
@@ -69,35 +70,43 @@ class Player(commands.Cog):
         if ctx.voice_client is None:
             await self.join(ctx)
 
+        if ("youtube.com/playlist?" in url):
+            ids = playlist(url)
+            for i in ids:
+                self.song_queue[ctx.guild.id].append(i)
+                song_name = pafy.new(i)
+                song_name = song_name.title
+                self.names_queue[ctx.guild.id].append(song_name)
+            await ctx.send("Added to queue")
+            return await self.check_queue(ctx)
+
         if not("youtube.com/watch?" in url or "https://youtu.be/" in url):
             await ctx.send("Searching for song")
 
             url = await self.search_song(url)
-            
 
         if ctx.voice_client.is_playing() or ctx.voice_client.is_paused():
             queue_len = len(self.song_queue[ctx.guild.id])
-
             self.song_queue[ctx.guild.id].append(url)
             url = "".join(url)
-            nameOfSong = pafy.new(url)
-            self.song_name_queue[ctx.guild.id].append(nameOfSong.title)
-            return await ctx.send(f"Added to queue at position: {queue_len+1}")
+            song_name = pafy.new(url)
+            song_name = song_name.title
+            self.names_queue[ctx.guild.id].append(song_name)
+            return await ctx.send(f"{song_name} added to queue at position: {queue_len+1}")
+        
+        await self.play_song(ctx, url)
 
-
-        name_play = await self.play_song(ctx, url)
-        await ctx.send(f'Now playing: {name_play}')
+        
 
 
     @commands.command(aliases=["q"])
     async def queue(self, ctx):
         if len(self.song_queue[ctx.guild.id]) == 0:
-            if len(self.song_name_queue[ctx.guild.id]) == 0:
-                return await ctx.send("There are currently no songs in the queue")
+            return await ctx.send("There are currently no songs in the queue")
 
         embed = discord.Embed(title="Song Queue", description="", colour=discord.Colour.dark_gold())
         i = 1
-        for url in self.song_name_queue[ctx.guild.id]:
+        for url in self.names_queue[ctx.guild.id]:
             embed.description += f"{i}) {url}\n"
 
             i += 1
