@@ -55,6 +55,8 @@ class Player(commands.Cog):
     @commands.command()
     async def leave(self, ctx):
         if ctx.voice_client is not None:
+            self.song_queue[ctx.guild.id].clear()
+            self.names_queue[ctx.guild.id].clear()
             return await ctx.voice_client.disconnect()
 
         await ctx.send("I'm not connected to a voice channel")
