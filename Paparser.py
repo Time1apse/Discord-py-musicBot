@@ -26,6 +26,7 @@ def playlist(url: str):
       id = url
       ids += id+" "
    ids = ids.split( )
+   print(ids)
    return(ids)
    
 

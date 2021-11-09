@@ -61,6 +61,13 @@ class Player(commands.Cog):
 
         await ctx.send("I'm not connected to a voice channel")
 
+
+    @commands.command()
+    async def lnc(self, ctx):
+        if ctx.voice_client is not None:
+            return await ctx.voice_client.disconnect()
+        await ctx.send("I'm not connected to a voice channel")
+
     @commands.command(aliases=['p'])
     async def play(self, ctx, *url):
         url = " ".join(url)
