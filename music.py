@@ -2,7 +2,7 @@ import discord
 from discord.ext import commands
 from discord.ext.commands.core import check
 import youtube_dl
-import pafy
+import pafyfixed as pafy
 from Paparser import music, playlist
 import asyncio
 from discord import FFmpegPCMAudio, PCMVolumeTransformer
